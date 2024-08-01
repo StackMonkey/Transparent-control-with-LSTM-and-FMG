@@ -4,7 +4,8 @@
 //===================================================================================
 
 //#include <Encoder.h>
-#include <ESP32Encoder.h>
+// esp32 board manager must be 2.0.16
+#include <ESP32Encoder.h> // Must be version 0.7.0
 #include "constants_and_globals.h"
 #include "control_parameters.h"
 #include "InverseDynamics.hh"
