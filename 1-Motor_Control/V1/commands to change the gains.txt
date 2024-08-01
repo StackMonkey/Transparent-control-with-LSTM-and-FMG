@@ -1,0 +1,38 @@
+rmp,x,y,z,T   
+rm represents right motor 
+p represents position 
+x represents proportional gain, y represents derivative gain and z represents integral gain
+
+if motor left is selected then 
+lmp,x,y,z,T
+
+
+instead of position velocity gains are tunned then 
+rmv,x,y,z,T
+lmv,x,y,z,T
+
+
+default
+PID_gains MR_pos_gains = { 0.4, 0, 0, 0, 0, 0};
+PID_gains ML_pos_gains = { 0.4, 0, 0, 0, 0, 0};
+
+
+
+rmp,0.2,0,0,T
+lmp,0.1,0.01,0,T
+
+
+gains working for both motors
+
+
+Grmp,0.1,0.001,0.0,T
+Glmp,0.07,0.003,0.0000,T
+
+
+Grmv,1.5,0.00,0.1,T
+Glmv,2,0.00,0.1,T
+
+
+Graf,0.05,2,0.1,T
+Glaf,0.05,2,0.1,T
+
