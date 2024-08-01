@@ -33,8 +33,8 @@ InverseDynamics right;
 float torqueInfo = 0.f;
 float dynamictorque = 0.f;
 float payloadMass = 1.1;
-float scalingUpper = 7.87;//0.0009913;
-float scalingLower = -7.87;//-0.00082609;
+float scalingUpper = 0.0009913;//7.87
+float scalingLower = -0.00082609;//-7.87
 PID_gains MR_pos_gains = { 0.1, 0.001, 0, 0, 0, 0};
 PID_gains ML_pos_gains = { 0.1, 0.003, 0, 0, 0, 0};
 PID_gains MR_vel_gains = { 1, 0, 0, 0, 0, 0};
