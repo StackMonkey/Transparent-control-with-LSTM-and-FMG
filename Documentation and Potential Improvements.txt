@@ -1,0 +1,22 @@
+--Documentation--
+	-Code Overview-
+	- Exoskeleton Control Code:Transparent-control-with-LSTM-and-FMG\1-Motor_Control\V1
+		V_1.ino : Main loop, main motor controller, admittance control, PID Control, sensor data collection, 			implementation of Inverse Dynamics and LSTM torque prediction into admittance controller.
+		InverseDynamics.hh : Class containing the LSTM torque predictor, the inverse dynamics model used to 			calculate torque from acceleration obtained from the encoder as well as scaling and differencing functions.
+		model.h : The exported LSTM model. Predicts 1 time step into the future.
+		constants_and_globals.h : source file containing constants and globals for the main code V_1.ino
+		control_parameters.h : source file containing control parameters for V_1.ino. Change the parameters as needed.
+	- LSTM Model Generation
+		LSTM_ : Code that generates embedded LSTM model, see model.h file. Can be adjusted to generate model with 		different prediction horizons. Currently not working.
+--Potential Improvements--
+	- Fix the LSTM model generator("Transparent-control-with-LSTM-and-FMG\LSTM Model generation\LSTM_.ipynb"). 
+	- If necessary, redo both the LSTM model generator and the LSTM model implementation on ESP32("Transparent-control-	with-LSTM-and-FMG\1-Motor_Control\V1\InverseDynamics.hh").
+	- Reevaluate the Inverse Dynamics model used in the control code("Transparent-control-with-LSTM-and-FMG\1-	Motor_Control\V1\InverseDynamics.hh"). See Exoskeleton research document for more details on the model.
+	- Find a way to export the DNN weight classifier model to the ESP32 and connect the FMG band to the exoskeleton via 	bluetooth. 
+	- Switch the embedded LSTM model to a quantization aware model. (Currently uses post-training quantization)
+	- Try to incorporate the torque sensor into the control algorithm at the wrist to improve the responsiveness of the 		exoskeleton and reduce interaction torque.(1-Motor_Control/V_1/V1)
+	- Train a Reinforcement Learning model for torque prediction and compare transparency(Measured interaction Torque) 	against LSTM.
+
+
+	
+	
