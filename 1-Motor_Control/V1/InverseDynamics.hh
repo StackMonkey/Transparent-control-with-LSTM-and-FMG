@@ -16,7 +16,6 @@ class InverseDynamics{
   InverseDynamics() = default;
   float Torque(float angle, float velocity, float mass,float sampleTime){
     mass2 = mass;
-    //acceleration = (velocity-prevVelocity)/sampleTime;
     prevVelocity = velocity;
     torque3 = torque2;
     torque2 = torque1;
