@@ -19,7 +19,7 @@ class InverseDynamics{
     prevVelocity = velocity;
     torque3 = torque2;
     torque2 = torque1;
-    torque1 = (Je+mass*sq(lp))*acceleration;//+0*Me*le*g*sin(angle)+mass*lp*sin(angle)*g;
+    torque1 = (Je+mass*sq(lp))*acceleration+0.5*Me*le*g*sin(angle)+0.5*mass*lp*sin(angle)*g;
     return torque1;
   }
   float diffTorque(float torque){
@@ -29,18 +29,9 @@ class InverseDynamics{
     return diffTorque1;
   }
   float invDiffTorque(float ScaledDiffTorque){
-    // //Using estimate of torque1
     float torque1_estimate=scaledDiffTorque2+torque2;
     scaledDiffTorque1 = ScaledDiffTorque + torque1_estimate;
-    // //Using true value of torque1 (which is the worse option)
-    // scaledDiffTorque1 = ScaledDiffTorque + torque1;
     scaledDiffTorque2 = ScaledDiffTorque;
-    
-    /*Serial.print("Debug");
-    Serial.print(ScaledDiffTorque,5);
-    Serial.print(",");
-    Serial.print(torque2,5);
-    Serial.println("------");*/
     return scaledDiffTorque1;
   }
   void LSTMsetup(){

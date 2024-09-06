@@ -33,8 +33,8 @@ InverseDynamics right;
 float torqueInfo = 0.f;
 float dynamictorque = 0.f;
 float payloadMass = 0.0;
-float scalingUpper = 7.87; //0.0009913;//7.87
-float scalingLower = -7.87;//-0.00082609;//-7.87
+float scalingUpper = 7.87; //0.0009913;
+float scalingLower = -7.87;//-0.00082609;
 PID_gains MR_pos_gains = { 0.1, 0.001, 0, 0, 0, 0};
 PID_gains ML_pos_gains = { 0.1, 0.003, 0, 0, 0, 0};
 PID_gains MR_vel_gains = { 1, 0, 0, 0, 0, 0};
@@ -109,12 +109,8 @@ void setup() {
     
   }
   MySerial.println('A');  // sending charachter to PS
-
-  // set starting count value
   encoderMR.setCount(0);
   encoderML.setCount(0);
-
-  // clear the encoder's raw count and set the tracked count to zero
   encoderMR.clearCount();
   encoderML.clearCount();
 
@@ -160,13 +156,6 @@ void loop()
   exo_data[3] = max_assist_value;
   exo_data[13] = max_assist_value;
 
-  //  readExo(Exo_raw_data); ///// Reading EXO parameters
-  //  ///////////////////////////////////////////////
-  //  ///////////////////////////////////////////////
-  //  ////  reading LC data after every 100 msec ////
-  //  ///////////////////////////////////////////////
-  //  ///////////////////////////////////////////////
-
   readExo(Exo_filter_data); ///// Reading EXO parameters
 
   Exo_filter_data[1] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[1] + lp_vals.old_vel_MR) / (1 + lp_vals.ts * lp_vals.wc);
@@ -204,6 +193,9 @@ void loop()
  if (LC_read_counter >= 100 / (control_loop_time / 1000))
   {
     readLC(LC_filter_data);
+    if(LC_filter_data[0] < -50.0){
+      LC_filter_data[0] = LC_filter_data[0]+114.21;
+    }
     exo_data[6] = (LC_filter_data[0] + 20) * 6;
     exo_data[7] = (LC_filter_data[1] + 20) * 6;
     exo_data[8] = (LC_filter_data[2] + 20) * 6;
@@ -268,7 +260,7 @@ void loop()
     //float ltorquePre = left.Inverse_Scaling_transformation(left.LSTMpredict(scaledltorque),-1,1,scalingLower,scalingUpper);
     float invrtorquePre = right.invDiffTorque(rtorquePre);
     //float invltorquePre = left.invDiffTorque(ltorquePre); 
-    desired_velocity_MR = admittance_filter_MR(invrtorquePre);
+    desired_velocity_MR = admittance_filter_MR(LC_filter_data[0]-invrtorquePre);
     //desired_velocity_ML = admittance_filter_ML(invltorquePre);
     desired_velocity_ML = 0;
     torqueInfo = invrtorquePre;
