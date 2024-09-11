@@ -205,7 +205,7 @@ class Armband:
         else:
             battery_decoded = [1]            
         for sample in range(len(data_buffer)):
-            data_buffer[sample].extend(imu_decoded + battery_decoded + [time.time()])
+            data_buffer[sample].extend(imu_decoded + battery_decoded + [time.time()])#battery_decoded
         return data_buffer
 
     
@@ -317,7 +317,9 @@ class Armband:
                         image_name =  x + y
                         cv2_img = cv2.imread(os.path.join('images', image_name))
                         mod_cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
-                        axs_plot[i, j].imshow(mod_cv2_img)    
+                        axs_plot[i, j].imshow(mod_cv2_img)
+                  elif i == 1 and j == 2:
+                        axs_plot[i,j].axis('off')    
                   elif i<2:
                         axs_plot[i,j].clear()
                         if(total_length < plot_history_time*sampling_frequency):
