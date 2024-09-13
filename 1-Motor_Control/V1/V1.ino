@@ -111,19 +111,18 @@ void setup() {
   pinmode_slection();
 
   ///////
-  char c = 'C';
+  char c = 'b';
   char C = 'b';
-  while (c != 'C')
+  while (c != 'k')
   {
-    //c = SerialBT.read();
-    if (Serial.available()){
-      c = Serial.read();
+    if (SerialBT.available()){
+      c = SerialBT.read();
     }
   }
-  //SerialBT.print('M');  // sending charachter to PS
+  SerialBT.print('H');  // sending charachter to PS
   //SerialBT.print('>');  // sending charachter to PS
-  Serial.print('M');  // sending charachter to PS
-  Serial.print('>');  // sending charachter to
+  //Serial.print('M');  // sending charachter to PS
+  //Serial.print('>');  // sending charachter to
   c = 'B';
   while (c != 'B')
   {
