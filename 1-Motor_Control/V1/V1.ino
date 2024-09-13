@@ -10,7 +10,32 @@
 #include "control_parameters.h"
 #include "InverseDynamics.hh"
 #include "HardwareSerial.h"
+#include "BluetoothSerial.h"
+#include "esp_bt_main.h"
+#include "esp_gap_bt_api.h"
+#include "esp_bt_device.h"
+bool initBluetooth(const char *deviceName) {
+	if (!btStart()) {
+		Serial.println("Failed to initialize controller");
+		return false;
+	}
 
+	if (esp_bluedroid_init() != ESP_OK) {
+		Serial.println("Failed to initialize bluedroid");
+		return false;
+	}
+
+	if (esp_bluedroid_enable() != ESP_OK) {
+		Serial.println("Failed to enable bluedroid");
+		return false;
+	}
+
+	esp_bt_dev_set_device_name(deviceName);
+
+	esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+}
+
+BluetoothSerial SerialBT;
 
 ESP32Encoder encoderMR;
 ESP32Encoder encoderML;
@@ -33,8 +58,8 @@ InverseDynamics right;
 float torqueInfo = 0.f;
 float dynamictorque = 0.f;
 float payloadMass = 0.0;
-float scalingUpper = 7.87; //0.0009913;
-float scalingLower = -7.87;//-0.00082609;
+float rightTorquePre = 0.f;
+float leftTorquePre = 0.f;
 PID_gains MR_pos_gains = { 0.1, 0.001, 0, 0, 0, 0};
 PID_gains ML_pos_gains = { 0.1, 0.003, 0, 0, 0, 0};
 PID_gains MR_vel_gains = { 1, 0, 0, 0, 0, 0};
@@ -51,14 +76,14 @@ float assist_val_left = 0;
 float last_detected = millis();
 float difference_val = 0;
 
-#define NUM_data 20
+#define NUM_data 2
 byte buff_data[NUM_data];
 int data_send_loop = 0;
 
 void setup() {
   //analogWriteResolution(12);  // set the analog output resolution to 12 bit
   analogReadResolution(12);   // set the analog input resolution to 12 bit
-  //SerialBT.begin("Motor_Control"); //Bluetooth device name
+  SerialBT.begin("Motor_Control"); //Bluetooth device name
   Serial.begin(250000); //Bluetooth device name
   MySerial.begin(250000, SERIAL_8N1, 16, 17);
 
@@ -70,8 +95,7 @@ void setup() {
   // set starting count value
   encoderMR.setCount(0);
   encoderML.setCount(0);
-  right.LSTMsetup();
-  //left.LSTMsetup();
+
   // clear the encoder's raw count and set the tracked count to zero
   encoderMR.clearCount();
   encoderML.clearCount();
@@ -137,16 +161,11 @@ void setup() {
 
 void loop()
 {
-  /*if (SerialBT.available())
-    {
+  if (SerialBT.available())
+  {
     received_command = SerialBT.read();
-    }*/
-  if (Serial.available())
-  {
-    received_command = Serial.read();
   }
-  if (received_command == 'G')
-  {
+  if(received_command == 'G'){
     read_string();
   }
   exo_data[9] = (int)(assist_val_right * 100 / 13.5);
@@ -253,17 +272,9 @@ void loop()
     }
     float rtorque = right.Torque(Exo_filter_data[0]*3.142/180.0,Exo_filter_data[1],payloadMass,0.002);
     dynamictorque = rtorque;
-    //float ltorque = left.Torque(Exo_filter_data[3]*3.142/180.0,Exo_filter_data[4],payloadMass,0.002);
-    float scaledrtorque = right.Scaling_transformation(right.diffTorque(rtorque),-1,1,scalingLower,scalingUpper);
-    //float scaledltorque = left.Scaling_transformation(left.diffTorque(ltorque),-1,1,scalingLower,scalingUpper);
-    float rtorquePre = right.Inverse_Scaling_transformation(right.LSTMpredict(scaledrtorque),-1,1,scalingLower,scalingUpper);
-    //float ltorquePre = left.Inverse_Scaling_transformation(left.LSTMpredict(scaledltorque),-1,1,scalingLower,scalingUpper);
-    float invrtorquePre = right.invDiffTorque(rtorquePre);
-    //float invltorquePre = left.invDiffTorque(ltorquePre); 
-    desired_velocity_MR = admittance_filter_MR(LC_filter_data[0]-invrtorquePre);
+    desired_velocity_MR = admittance_filter_MR(LC_filter_data[0]-rtorque);
     //desired_velocity_ML = admittance_filter_ML(invltorquePre);
     desired_velocity_ML = 0;
-    torqueInfo = invrtorquePre;
   }
 
   //if (SerialBT.available())
@@ -527,7 +538,7 @@ void loop()
         desired_velocity_ML = safety_function(desired_velocity_ML, Exo_filter_data[4], Exo_filter_data[3]);
         PID_control((desired_velocity_ML - Exo_filter_data[4]), &ML_vel_gains);
 
-        current_control(ML_vel_gains.output, ML_dir, ML_pwm_channel);
+       // current_control(ML_vel_gains.output, ML_dir, ML_pwm_channel);
       }
       motor_actuation_loop = 0;
     }
@@ -610,12 +621,10 @@ void loop()
       if ((current_time - previous_current_time_sending) >= 16)
       {
         previous_current_time_sending = current_time;
-        for (int ii = 0; ii < 20; ii++)
-        {
-          buff_data[ii] = (byte)(exo_data_matrix[ii]);
-        }
+        buff_data[0] = (byte)right.torque1;
+        buff_data[1] = (byte)right.torque1;
         //SerialBT.write(buff_data, 20);
-        Serial.write(buff_data, 20);
+        SerialBT.write(buff_data, 2);
         data_send_loop = data_send_loop + 1;
       }
     }
@@ -997,141 +1006,35 @@ void PID_control(float error_value, PID_gains *pid_struc)
 ////         read  string           /////
 ////                                /////
 /////////////////////////////////////////
-
-void read_string()
-{
-  String stringone = "";
-  String mc_sel = "";
-  String gains_sel = "";
-  String gains_val = "";
-  int comma_index = 0;
-  received_command = 'n';
-  while (received_command != 'T')
-  {
-    /*if (SerialBT.available())
-      {
-      received_command = SerialBT.read();*/
-    if (Serial.available())
-    {
-      received_command = Serial.read();
-      if (received_command != 'T')
-      {
-        stringone += received_command;
-      }
-      else
-      {
-        mc_sel = stringone.substring(0, 3);
-        gains_sel = stringone.substring(4);
-        if (mc_sel == "rmp")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_pos_gains.p_gain = gains_val.toFloat();
+void read_string() {
+	String stringone = "";
+	String mc_sel = "";
+	String gains_sel = "";
+	String gains_val = "";
+	int comma_index = 0;
+	received_command = 'n';
+	while (received_command != 'T') {
+		if (SerialBT.available()) {
+			received_command = SerialBT.read();
+			if (received_command != 'T') {
+				stringone += received_command;
+			} else {
+				mc_sel = stringone.substring(0, 3);
+				gains_sel = stringone.substring(4);
+				if (mc_sel == "rmp") {
+					comma_index = gains_sel.indexOf(',', 0);
+					gains_val = gains_sel.substring(0, comma_index);
+					rightTorquePre = gains_val.toFloat();
           gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_pos_gains.d_gain = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_pos_gains.i_gain = gains_val.toFloat();
-        }
-        if (mc_sel == "lmp")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_pos_gains.p_gain = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_pos_gains.d_gain = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_pos_gains.i_gain = gains_val.toFloat();
-        }
-        ////////////////
-        if (mc_sel == "rmv")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_vel_gains.p_gain = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_vel_gains.d_gain = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_vel_gains.i_gain = gains_val.toFloat();
-        }
-        if (mc_sel == "lmv")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_vel_gains.p_gain = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_vel_gains.d_gain = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_vel_gains.i_gain = gains_val.toFloat();
-        }
-        if (mc_sel == "raf")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_AF_gains.inertia_val = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_AF_gains.damping_val = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          MR_AF_gains.stiffness_val = gains_val.toFloat();
-        }
-
-        if (mc_sel == "laf")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_AF_gains.inertia_val = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_AF_gains.damping_val = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          ML_AF_gains.stiffness_val = gains_val.toFloat();
-        }
-        if (mc_sel == "rav")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          assist_val_right = gains_val.toFloat() * 13.5;
-        }
-        if (mc_sel == "lav")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          assist_val_left = gains_val.toFloat() * 13.5;
-        }
-        if (mc_sel == "mav")
-        {
-          comma_index = gains_sel.indexOf(',', 0);
-          gains_val = gains_sel.substring(0, comma_index);
-          max_assist_value = gains_val.toFloat();
-        }
-      }
-    }
-  }
-  received_command = 'n';
+					comma_index = gains_sel.indexOf(',', 0);
+					gains_val = gains_sel.substring(0, comma_index);
+					leftTorquePre = gains_val.toFloat();
+				}
+			}
+		}
+	}
+	received_command = 'n';
 }
-
 ////////////////////////////////////
 ////                                /////
 ////  PID for velocity control      /////
