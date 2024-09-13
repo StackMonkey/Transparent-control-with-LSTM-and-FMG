@@ -119,7 +119,7 @@ void setup() {
       c = SerialBT.read();
     }
   }
-  SerialBT.print('H');  // sending charachter to PS
+  SerialBT.print('M');  // sending charachter to PS
   //SerialBT.print('>');  // sending charachter to PS
   //Serial.print('M');  // sending charachter to PS
   //Serial.print('>');  // sending charachter to
@@ -620,10 +620,8 @@ void loop()
       if ((current_time - previous_current_time_sending) >= 16)
       {
         previous_current_time_sending = current_time;
-        buff_data[0] = (byte)right.torque1;
-        buff_data[1] = (byte)right.torque1;
         //SerialBT.write(buff_data, 20);
-        SerialBT.write(buff_data, 2);
+        SerialBT.write(right.torque1, 1);
         data_send_loop = data_send_loop + 1;
       }
     }
