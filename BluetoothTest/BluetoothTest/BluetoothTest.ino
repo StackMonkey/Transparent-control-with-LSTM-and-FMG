@@ -17,15 +17,31 @@
 
 #include <map>
 #include <BluetoothSerial.h>
+#include "esp_bt_main.h"
+#include "esp_gap_bt_api.h"
+#include "esp_bt_device.h"
 
-#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
-#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
-#endif
+char command = 'T';
+bool initBluetooth(const char *deviceName) {
+	if (!btStart()) {
+		Serial.println("Failed to initialize controller");
+		return false;
+	}
 
-#if !defined(CONFIG_BT_SPP_ENABLED)
-#error Serial Bluetooth not available or not enabled. It is only available for the ESP32 chip.
-#endif
+	if (esp_bluedroid_init() != ESP_OK) {
+		Serial.println("Failed to initialize bluedroid");
+		return false;
+	}
 
+	if (esp_bluedroid_enable() != ESP_OK) {
+		Serial.println("Failed to enable bluedroid");
+		return false;
+	}
+
+	esp_bt_dev_set_device_name(deviceName);
+
+	esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+}
 BluetoothSerial SerialBT;
 
 #define BT_DISCOVER_TIME 10000
@@ -35,78 +51,72 @@ esp_spp_role_t role = ESP_SPP_ROLE_SLAVE;   // or ESP_SPP_ROLE_MASTER
 // std::map<BTAddress, BTAdvertisedDeviceSet> btDeviceList;
 
 void setup() {
-  Serial.begin(115200);
-  if (!SerialBT.begin("ESP32test", true)) {
-    Serial.println("========== serialBT failed!");
-    abort();
-  }
-  // SerialBT.setPin("1234"); // doesn't seem to change anything
-  // SerialBT.enableSSP(); // doesn't seem to change anything
-
-  Serial.println("Starting discoverAsync...");
-  BTScanResults *btDeviceList = SerialBT.getScanResults();  // maybe accessing from different threads!
-  if (SerialBT.discoverAsync([](BTAdvertisedDevice *pDevice) {
-        // BTAdvertisedDeviceSet*set = reinterpret_cast<BTAdvertisedDeviceSet*>(pDevice);
-        // btDeviceList[pDevice->getAddress()] = * set;
-        Serial.printf(">>>>>>>>>>>Found a new device asynchronously: %s\n", pDevice->toString().c_str());
-      })) {
-    delay(BT_DISCOVER_TIME);
-    Serial.print("Stopping discoverAsync... ");
-    SerialBT.discoverAsyncStop();
-    Serial.println("discoverAsync stopped");
-    delay(5000);
-    if (btDeviceList->getCount() > 0) {
-      BTAddress addr;
-      int channel = 0;
-      Serial.println("Found devices:");
-      for (int i = 0; i < btDeviceList->getCount(); i++) {
-        BTAdvertisedDevice *device = btDeviceList->getDevice(i);
-        Serial.printf(" ----- %s  %s %d\n", device->getAddress().toString().c_str(), device->getName().c_str(), device->getRSSI());
-        std::map<int, std::string> channels = SerialBT.getChannels(device->getAddress());
-        Serial.printf("scanned for services, found %d\n", channels.size());
-        for (auto const &entry : channels) {
-          Serial.printf("     channel %d (%s)\n", entry.first, entry.second.c_str());
-        }
-        if (channels.size() > 0) {
-          addr = device->getAddress();
-          channel = channels.begin()->first;
-        }
-      }
-      if (addr) {
-        Serial.printf("connecting to %s - %d\n", addr.toString().c_str(), channel);
-        SerialBT.connect(addr, channel, sec_mask, role);
-      }
-    } else {
-      Serial.println("Didn't find any devices");
+  Serial.begin(250000);
+  SerialBT.begin("BluetoothTest"); //Bluetooth device name
+  Serial.begin(250000); //Bluetooth device name
+  char c = 'B';
+  while (c != 'k')
+  {
+    if (SerialBT.available()){
+      c = SerialBT.read();
     }
-  } else {
-    Serial.println("Error on discoverAsync f.e. not working after a \"connect\"");
   }
+  SerialBT.print('M');  // sending charachter to PS
 }
 
-String sendData = "6\n";
-
+float rightTorquePre = 0.f;
+float leftTorquePre = 0.f;
+long currentTime = 0;
+long lastTime = 0;
+float torque = 1.1;
+byte sendData[2] = {};
 void loop() {
-  if (!SerialBT.isClosed() && SerialBT.connected()) {
-    if(sendData != "R"){
-    if (SerialBT.write((const uint8_t *)sendData.c_str(), sendData.length()) != sendData.length()) {
-      Serial.println("tx: error");
-    } else {
-      Serial.printf("%s", sendData.c_str());
-      sendData = "R";
-    }}
-    if (SerialBT.available()) {
-      Serial.print("rx: ");
-      while (SerialBT.available()) {
-        int c = SerialBT.read();
-        if (c >= 0) {
-          Serial.print((char)c);
-        }
-      }
-      Serial.println();
-    }
-  } else {
-    Serial.println("not connected");
+  currentTime = millis();
+  if(SerialBT.available()){
+    command == SerialBT.read();
   }
-  delay(1000);
+  if(command == 'G'){
+    read_string();
+    Serial.println("new predictions:");
+    Serial.println(rightTorquePre);
+    Serial.println(leftTorquePre);
+  }
+  if (currentTime>lastTime+50)
+  {
+    torque = random(1000)/1000.0;
+    sendData[0] = (byte)torque;
+    sendData[1] = (byte)torque;
+    SerialBT.print(torque, 6);
+    SerialBT.print("\n");
+    lastTime = currentTime;
+  }
+}
+void read_string() {
+	String stringone = "";
+	String mc_sel = "";
+	String gains_sel = "";
+	String gains_val = "";
+	int comma_index = 0;
+	command = 'n';
+	while (command != 'T') {
+		if (SerialBT.available()) {
+			command = SerialBT.read();
+			if (command != 'T') {
+				stringone += command;
+			} else {
+				mc_sel = stringone.substring(0, 3);
+				gains_sel = stringone.substring(4);
+				if (mc_sel == "rmp") {
+					comma_index = gains_sel.indexOf(',', 0);
+					gains_val = gains_sel.substring(0, comma_index);
+					rightTorquePre = gains_val.toFloat();
+          gains_sel = gains_sel.substring(comma_index + 1);
+					comma_index = gains_sel.indexOf(',', 0);
+					gains_val = gains_sel.substring(0, comma_index);
+					leftTorquePre = gains_val.toFloat();
+				}
+			}
+		}
+	}
+	command = 'n';
 }
