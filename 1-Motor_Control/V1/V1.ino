@@ -165,6 +165,7 @@ void loop()
     received_command = SerialBT.read();
   }
   if(received_command == 'G'){
+    send_data ='S';
     read_string();
   }
   exo_data[9] = (int)(assist_val_right * 100 / 13.5);
@@ -621,16 +622,20 @@ void loop()
       if ((current_time - previous_current_time_sending) >= 16)
       {
         previous_current_time_sending = current_time;
-        //SerialBT.write(buff_data, 20);
-        SerialBT.print(right.torque1, 6);
+        buff_data[0] = (byte)right.torque1;
+        buff_data[1] = (byte)Exo_filter_data[0];
+        SerialBT.write(buff_data, 2);
+        /*SerialBT.print(right.torque1, 6);
         SerialBT.print("\n");
+        SerialBT.print(Exo_filter_data[0],6);
+        SerialBT.print("\n");*/
         data_send_loop = data_send_loop + 1;
       }
     }
     else
     {
       data_send_loop = 0;
-      //send_data = 'n';
+      send_data = 'n';
     }
   }
 
