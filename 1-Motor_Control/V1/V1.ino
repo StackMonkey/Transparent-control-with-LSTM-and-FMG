@@ -271,7 +271,8 @@ void loop()
     }
     float rtorque = right.Torque(Exo_filter_data[0]*3.142/180.0,Exo_filter_data[1],payloadMass,0.002);
     dynamictorque = rtorque;
-    desired_velocity_MR = admittance_filter_MR(LC_filter_data[0]-rtorque);
+    torqueInfo = rightTorquePre;
+    desired_velocity_MR = admittance_filter_MR(LC_filter_data[0]-rightTorquePre);
     //desired_velocity_ML = admittance_filter_ML(invltorquePre);
     desired_velocity_ML = 0;
   }
@@ -621,7 +622,8 @@ void loop()
       {
         previous_current_time_sending = current_time;
         //SerialBT.write(buff_data, 20);
-        SerialBT.write(right.torque1, 1);
+        SerialBT.print(right.torque1, 6);
+        SerialBT.print("\n");
         data_send_loop = data_send_loop + 1;
       }
     }
