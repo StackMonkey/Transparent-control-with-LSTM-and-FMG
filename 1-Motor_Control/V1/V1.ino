@@ -630,7 +630,7 @@ void loop()
     else
     {
       data_send_loop = 0;
-      send_data = 'n';
+      //send_data = 'n';
     }
   }
 
