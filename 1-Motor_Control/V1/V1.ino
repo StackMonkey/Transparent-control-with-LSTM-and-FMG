@@ -14,6 +14,9 @@
 #include "esp_bt_main.h"
 #include "esp_gap_bt_api.h"
 #include "esp_bt_device.h"
+typedef float DataType;
+DataType data[2] = {999, 999};
+byte buff[(2)*sizeof(DataType)] = {};
 bool initBluetooth(const char *deviceName) {
 	if (!btStart()) {
 		Serial.println("Failed to initialize controller");
@@ -84,7 +87,7 @@ void setup() {
   //analogWriteResolution(12);  // set the analog output resolution to 12 bit
   analogReadResolution(12);   // set the analog input resolution to 12 bit
   SerialBT.begin("Motor_Control"); //Bluetooth device name
-  Serial.begin(250000); //Bluetooth device name
+  Serial.begin(921600); //Bluetooth device name
   MySerial.begin(250000, SERIAL_8N1, 16, 17);
 
 
@@ -622,9 +625,9 @@ void loop()
       if ((current_time - previous_current_time_sending) >= 16)
       {
         previous_current_time_sending = current_time;
-        buff_data[0] = (byte)right.torque1;
-        buff_data[1] = (byte)Exo_filter_data[0];
-        SerialBT.write(buff_data, 2);
+        data[0] = right.torque1;
+        data[1] = Exo_filter_data[0];
+        sendData();
         /*SerialBT.print(right.torque1, 6);
         SerialBT.print("\n");
         SerialBT.print(Exo_filter_data[0],6);
@@ -1081,3 +1084,19 @@ void read_string() {
 // 17 fy
 // 18 fx
 // 19 something
+void sendData()
+{
+  uint16_t count = 0;
+  for (uint8_t i = 0; i < 2; i++)
+  {
+    byte* byteData = (byte*)(data + i);
+    for (uint8_t j = 0; j < sizeof(DataType); j++)
+    {
+      buff[count + j] = byteData[j];
+    }
+    count += sizeof(DataType); // sizeof(float)
+  }
+  SerialBT.write(buff, (2)*sizeof(DataType));
+
+  memset(buff, 0, sizeof(buff)); // Clear the buffer
+}
