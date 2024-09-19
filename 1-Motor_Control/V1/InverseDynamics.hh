@@ -8,11 +8,11 @@ class InverseDynamics{
     prevVelocity = velocity;
     torque3 = torque2;
     torque2 = torque1;
-    torque1 = (Je+mass*sq(lp))*acceleration;//+0.5*Me*le*g*sin(angle)+0.5*mass*lp*sin(angle)*g;
+    torque1 = (Je+mass*sq(lp))*acceleration+0.5*Me*le*g*sin(angle)+0.5*mass*lp*sin(angle)*g;
     return torque1;
   }
     float lp = 0.3;
-    float le = 0.07;
+    float le = 0.17;
     float Me = 0.1;
     float Je = 0.21;//0.2 + mass2*sq(lp)+Me*sq(le);
     float mass2 = 0;

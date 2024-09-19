@@ -15,8 +15,8 @@
 #include "esp_gap_bt_api.h"
 #include "esp_bt_device.h"
 typedef float DataType;
-DataType data[2] = {999, 999};
-byte buff[(2)*sizeof(DataType)] = {};
+DataType data[3] = {999, 999, 999};
+byte buff[(3)*sizeof(DataType)] = {};
 bool initBluetooth(const char *deviceName) {
 	if (!btStart()) {
 		Serial.println("Failed to initialize controller");
@@ -215,8 +215,8 @@ void loop()
  if (LC_read_counter >= 100 / (control_loop_time / 1000))
   {
     readLC(LC_filter_data);
-    if(LC_filter_data[0] < -50.0){
-      LC_filter_data[0] = LC_filter_data[0]+114.21;
+    if(LC_filter_data[0] > -50.0){
+      LC_filter_data[0] = LC_filter_data[0];
     }
     exo_data[6] = (LC_filter_data[0] + 20) * 6;
     exo_data[7] = (LC_filter_data[1] + 20) * 6;
@@ -609,7 +609,7 @@ void loop()
   /////       Sending data        ////
   ////                            ////
   ////////////////////////////////////
-  // if data frequency is 50
+  // data frequency is 12.5Hz
 
   if (send_data == 'S')
   {
@@ -622,11 +622,12 @@ void loop()
         previous_current_time_sending = 0;
       }
 
-      if ((current_time - previous_current_time_sending) >= 16)
+      if ((current_time - previous_current_time_sending) >= 100)
       {
         previous_current_time_sending = current_time;
         data[0] = right.torque1;
         data[1] = Exo_filter_data[0];
+        data[2] = LC_filter_data[0];
         sendData();
         /*SerialBT.print(right.torque1, 6);
         SerialBT.print("\n");
@@ -1026,9 +1027,9 @@ void read_string() {
 			if (received_command != 'T') {
 				stringone += received_command;
 			} else {
-				mc_sel = stringone.substring(0, 3);
-				gains_sel = stringone.substring(4);
-				if (mc_sel == "rmp") {
+				//mc_sel = stringone.substring(0, 0);
+				gains_sel = stringone.substring(0,1);
+				if (gains_sel == ",") {
 					comma_index = gains_sel.indexOf(',', 0);
 					gains_val = gains_sel.substring(0, comma_index);
 					rightTorquePre = gains_val.toFloat();
@@ -1087,7 +1088,7 @@ void read_string() {
 void sendData()
 {
   uint16_t count = 0;
-  for (uint8_t i = 0; i < 2; i++)
+  for (uint8_t i = 0; i < 3; i++)
   {
     byte* byteData = (byte*)(data + i);
     for (uint8_t j = 0; j < sizeof(DataType); j++)
@@ -1096,7 +1097,7 @@ void sendData()
     }
     count += sizeof(DataType); // sizeof(float)
   }
-  SerialBT.write(buff, (2)*sizeof(DataType));
+  SerialBT.write(buff, (3)*sizeof(DataType));
 
   memset(buff, 0, sizeof(buff)); // Clear the buffer
 }
