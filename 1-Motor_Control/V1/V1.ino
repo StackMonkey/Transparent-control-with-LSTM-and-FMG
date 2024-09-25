@@ -276,7 +276,7 @@ void loop()
     float rtorque = right.Torque(Exo_filter_data[0]*3.142/180.0,Exo_filter_data[1],payloadMass,0.002);
     dynamictorque = rtorque;
     torqueInfo = rightTorquePre;
-    desired_velocity_MR = admittance_filter_MR(LC_filter_data[0]-rightTorquePre);
+    desired_velocity_MR = admittance_filter_MR(rightTorquePre);
     //desired_velocity_ML = admittance_filter_ML(invltorquePre);
     desired_velocity_ML = 0;
   }
@@ -459,7 +459,7 @@ void loop()
       digitalWrite(ML_en, HIGH);
       motors_enable_flag = 1;
     }
-    /// motor actuation loop to run at 50 HZ
+    /// motor actuation loop to run at 20 HZ
     if (motor_actuation_loop >= (motor_actuation_time / control_loop_time))
     {
       ////////////////////////
@@ -609,7 +609,7 @@ void loop()
   /////       Sending data        ////
   ////                            ////
   ////////////////////////////////////
-  // data frequency is 12.5Hz
+  // data frequency is 10Hz
 
   if (send_data == 'S')
   {
