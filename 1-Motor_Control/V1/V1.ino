@@ -260,13 +260,13 @@ void loop()
   }
   if (control_strategy == 'A')
   {
-    MR_AF_gains.inertia_val = 0.21 + right.mass2*sq(right.lp); // 0.038 //M
-    MR_AF_gains.damping_val = 0.01;     //D
+    MR_AF_gains.inertia_val = 0.25 + right.mass2*sq(right.lp); // 0.038 //M
+    MR_AF_gains.damping_val = 3;     //D
     //ML_AF_gains.inertia_val = 0.14 + left.mass2*sq(left.lp); // 0.038 //M
     ML_AF_gains.damping_val = 0.0;     //D'
     if(payloadMass > 0.0){
-      MR_AF_gains.inertia_val = 0.10 + right.mass2*sq(right.lp); // 0.038 //M
-      MR_AF_gains.damping_val = 0.01;     //D
+      MR_AF_gains.inertia_val = 0.25 + right.mass2*sq(right.lp); // 0.038 //M
+      MR_AF_gains.damping_val = 3;     //D
       //ML_AF_gains.inertia_val = 0.1 + left.mass2*sq(left.lp); // 0.038 //M
       ML_AF_gains.damping_val = 0.0;     //D'
     }
@@ -1097,4 +1097,4 @@ void sendData()
   SerialBT.write(buff, (3)*sizeof(DataType));
 
   memset(buff, 0, sizeof(buff)); // Clear the buffer
-}
+} 
