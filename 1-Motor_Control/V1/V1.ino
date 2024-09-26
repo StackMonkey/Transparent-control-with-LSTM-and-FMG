@@ -215,9 +215,6 @@ void loop()
  if (LC_read_counter >= 100 / (control_loop_time / 1000))
   {
     readLC(LC_filter_data);
-    if(LC_filter_data[0] > -50.0){
-      LC_filter_data[0] = LC_filter_data[0];
-    }
     exo_data[6] = (LC_filter_data[0] + 20) * 6;
     exo_data[7] = (LC_filter_data[1] + 20) * 6;
     exo_data[8] = (LC_filter_data[2] + 20) * 6;
@@ -263,15 +260,15 @@ void loop()
   }
   if (control_strategy == 'A')
   {
-    MR_AF_gains.inertia_val = 0.14 + right.mass2*sq(right.lp); // 0.038 //M
+    MR_AF_gains.inertia_val = 0.21 + right.mass2*sq(right.lp); // 0.038 //M
     MR_AF_gains.damping_val = 0.01;     //D
     //ML_AF_gains.inertia_val = 0.14 + left.mass2*sq(left.lp); // 0.038 //M
-    ML_AF_gains.damping_val = 0.01;     //D'
+    ML_AF_gains.damping_val = 0.0;     //D'
     if(payloadMass > 0.0){
-      MR_AF_gains.inertia_val = 0.1 + right.mass2*sq(right.lp); // 0.038 //M
+      MR_AF_gains.inertia_val = 0.10 + right.mass2*sq(right.lp); // 0.038 //M
       MR_AF_gains.damping_val = 0.01;     //D
       //ML_AF_gains.inertia_val = 0.1 + left.mass2*sq(left.lp); // 0.038 //M
-      ML_AF_gains.damping_val = 0.01;     //D'
+      ML_AF_gains.damping_val = 0.0;     //D'
     }
     float rtorque = right.Torque(Exo_filter_data[0]*3.142/180.0,Exo_filter_data[1],payloadMass,0.002);
     dynamictorque = rtorque;
@@ -506,7 +503,7 @@ void loop()
           }
         }
         desired_velocity_MR = safety_function(desired_velocity_MR, Exo_filter_data[1], Exo_filter_data[0]);
-        Serial.print(torqueInfo);
+        Serial.print(torqueInfo,6);
         Serial.print(",");
         Serial.print(dynamictorque);
         Serial.print(",");
@@ -568,7 +565,7 @@ void loop()
     velocity_control(0, MR_dir, MR_pwm_channel);
     velocity_control(0, ML_dir, ML_pwm_channel);
     if (motor_actuation_loop >= (motor_actuation_time / control_loop_time)){
-        Serial.print(torqueInfo);
+        Serial.print(torqueInfo,6);
         Serial.print(",");
         Serial.print(dynamictorque);
         Serial.print(",");
@@ -1027,13 +1024,13 @@ void read_string() {
 			if (received_command != 'T') {
 				stringone += received_command;
 			} else {
-				//mc_sel = stringone.substring(0, 0);
-				gains_sel = stringone.substring(0,1);
-				if (gains_sel == ",") {
+				mc_sel = stringone.substring(0, 3);
+				gains_sel = stringone.substring(4);
+				if (mc_sel == "rmp") {
 					comma_index = gains_sel.indexOf(',', 0);
 					gains_val = gains_sel.substring(0, comma_index);
 					rightTorquePre = gains_val.toFloat();
-          gains_sel = gains_sel.substring(comma_index + 1);
+					gains_sel = gains_sel.substring(comma_index + 1);
 					comma_index = gains_sel.indexOf(',', 0);
 					gains_val = gains_sel.substring(0, comma_index);
 					leftTorquePre = gains_val.toFloat();
