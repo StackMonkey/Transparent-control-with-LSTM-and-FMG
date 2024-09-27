@@ -606,7 +606,7 @@ void loop()
   /////       Sending data        ////
   ////                            ////
   ////////////////////////////////////
-  // data frequency is 10Hz
+  // data frequency is 12.5Hz
 
   if (send_data == 'S')
   {
@@ -619,7 +619,7 @@ void loop()
         previous_current_time_sending = 0;
       }
 
-      if ((current_time - previous_current_time_sending) >= 100)
+      if ((current_time - previous_current_time_sending) >= 80)
       {
         previous_current_time_sending = current_time;
         data[0] = right.torque1;
