@@ -143,7 +143,12 @@ struct LP_vals {
   float ts;
   float wc;
 };
-
+struct Kalman_vals{
+  float old_velocity;
+  float old_angle;
+  float uncertainty_velAngle;
+  float uncertainty_vel;
+};
 ///////////////////////////
 //                       //
 //   control strategy    //

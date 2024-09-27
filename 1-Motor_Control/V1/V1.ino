@@ -15,6 +15,7 @@
 #include "esp_gap_bt_api.h"
 #include "esp_bt_device.h"
 typedef float DataType;
+float oldAngles[4] = {0.0,0.0,0.0,0.0};
 DataType data[3] = {999, 999, 999};
 byte buff[(3)*sizeof(DataType)] = {};
 bool initBluetooth(const char *deviceName) {
@@ -68,8 +69,8 @@ PID_gains ML_pos_gains = { 0.1, 0.003, 0, 0, 0, 0};
 PID_gains MR_vel_gains = { 1, 0, 0, 0, 0, 0};
 PID_gains ML_vel_gains = { 1, 0, 0, 0, 0, 0};
 
-LP_vals lp_vals = {0, 0, 0, 0, 0.002, 190};
-
+LP_vals lp_vals = {0, 0, 0, 0, 0.08, 10};//cutoff original:190
+Kalman_vals filter_R = {0.0,0.0,0.001,0.04};
 AF_gains MR_AF_gains = { 0.15, 0.0, 0.0};//{ 0.15, 4, 0.001};
 AF_gains ML_AF_gains = { 0.15, 0.0, 0.0};
 //Encoder knobRight(MR_PE_A, MR_PE_B);
@@ -179,10 +180,18 @@ void loop()
   exo_data[13] = max_assist_value;
 
   readExo(Exo_filter_data); ///// Reading EXO parameters
-
+  oldAngles[0] = oldAngles[1];
+  oldAngles[1] = oldAngles[2];
+  oldAngles[2] = oldAngles[3];
+  oldAngles[3] = Exo_filter_data[0];
   Exo_filter_data[1] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[1] + lp_vals.old_vel_MR) / (1 + lp_vals.ts * lp_vals.wc);
+  Exo_filter_data[1] = kalmanFilterVelocity(Exo_filter_data[1],Exo_filter_data[0]*3.142/180.0);
+  if((oldAngles[0]+oldAngles[1]+oldAngles[2]+oldAngles[3])/4.0 == Exo_filter_data[0]){
+    Exo_filter_data[1] = 0.0;
+  }
   right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
-  right.acceleration = (lp_vals.ts * lp_vals.wc * right.acceleration + right.prevAcceleration) / (1 + lp_vals.ts * lp_vals.wc);
+  //right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
+  //right.acceleration = (lp_vals.ts * lp_vals.wc * right.acceleration + right.prevAcceleration) / (1 + lp_vals.ts * lp_vals.wc);
   lp_vals.old_vel_MR = Exo_filter_data[1];
   right.prevAcceleration = right.acceleration;
   Exo_filter_data[2] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[2] + lp_vals.old_cur_MR) / (1 + lp_vals.ts * lp_vals.wc);
@@ -209,11 +218,11 @@ void loop()
 
   ///////////////////////////////////////////////
   ///////////////////////////////////////////////
-  ////  reading LC data after every 100 msec ////
+  ////  reading LC data after every 80 msec ////
   ///////////////////////////////////////////////
   ///////////////////////////////////////////////
- if (LC_read_counter >= 100 / (control_loop_time / 1000))
-  {
+ //if (LC_read_counter >= 80 / (control_loop_time / 1000))
+  //{
     readLC(LC_filter_data);
     exo_data[6] = (LC_filter_data[0] + 20) * 6;
     exo_data[7] = (LC_filter_data[1] + 20) * 6;
@@ -222,9 +231,9 @@ void loop()
     exo_data[16] = (LC_filter_data[3] + 20) * 6;
     exo_data[17] = (LC_filter_data[4] + 20) * 6;
     exo_data[18] = (LC_filter_data[5] + 20) * 6;
-    LC_read_counter = 0;
-  }
-  LC_read_counter = LC_read_counter + 1;
+    //LC_read_counter = 0;
+  //}
+  //LC_read_counter = LC_read_counter + 1;
   //load cell data
 
 
@@ -261,7 +270,7 @@ void loop()
   if (control_strategy == 'A')
   {
     MR_AF_gains.inertia_val = 0.25 + right.mass2*sq(right.lp); // 0.038 //M
-    MR_AF_gains.damping_val = 3;     //D
+    MR_AF_gains.damping_val = 0.1;     //D
     //ML_AF_gains.inertia_val = 0.14 + left.mass2*sq(left.lp); // 0.038 //M
     ML_AF_gains.damping_val = 0.0;     //D'
     if(payloadMass > 0.0){
@@ -456,9 +465,9 @@ void loop()
       digitalWrite(ML_en, HIGH);
       motors_enable_flag = 1;
     }
-    /// motor actuation loop to run at 20 HZ
-    if (motor_actuation_loop >= (motor_actuation_time / control_loop_time))
-    {
+    /// motor actuation loop to run at 12.5 HZ
+    //if (motor_actuation_loop >= (motor_actuation_time / control_loop_time))
+    //{
       ////////////////////////
       //
       // Trajectory control using escon current control
@@ -511,7 +520,7 @@ void loop()
         Serial.print(",");
         Serial.print(Exo_filter_data[0]);
         Serial.print(",");
-        Serial.print(Exo_filter_data[1]);
+        Serial.print(Exo_filter_data[1],6);
         Serial.print(",");
         Serial.print(desired_velocity_MR);
         Serial.print(",");
@@ -541,9 +550,9 @@ void loop()
 
        // current_control(ML_vel_gains.output, ML_dir, ML_pwm_channel);
       }
-      motor_actuation_loop = 0;
-    }
-    motor_actuation_loop = motor_actuation_loop + 1;
+      //motor_actuation_loop = 0;
+    //}
+    //motor_actuation_loop = motor_actuation_loop + 1;
   }
   ///////////////////////////////
   ///////////////////////////////
@@ -564,7 +573,7 @@ void loop()
     //motor_actuation_loop = 0;
     velocity_control(0, MR_dir, MR_pwm_channel);
     velocity_control(0, ML_dir, ML_pwm_channel);
-    if (motor_actuation_loop >= (motor_actuation_time / control_loop_time)){
+    //if (motor_actuation_loop >= (motor_actuation_time / control_loop_time)){
         Serial.print(torqueInfo,6);
         Serial.print(",");
         Serial.print(dynamictorque);
@@ -573,15 +582,15 @@ void loop()
         Serial.print(",");
         Serial.print(Exo_filter_data[0]);
         Serial.print(",");
-        Serial.print(Exo_filter_data[1]);
+        Serial.print(Exo_filter_data[1],6);
         Serial.print(",");
         Serial.print(desired_velocity_MR);
         Serial.print(",");
         Serial.print(right.acceleration);
         Serial.println();
-      motor_actuation_loop = 0;
-    }
-    motor_actuation_loop++;
+      //motor_actuation_loop = 0;
+    //}
+    //motor_actuation_loop++;
   }
   ///////////////////////////////
   ///////////////////////////////
@@ -610,34 +619,35 @@ void loop()
 
   if (send_data == 'S')
   {
-    if (data_send_loop < 50)
+   // if (data_send_loop < 50)
+   // {
+    current_time = millis();
+
+    if (previous_current_time_sending > current_time)
     {
-      current_time = millis();
-
-      if (previous_current_time_sending > current_time)
-      {
-        previous_current_time_sending = 0;
-      }
-
-      if ((current_time - previous_current_time_sending) >= 80)
-      {
-        previous_current_time_sending = current_time;
-        data[0] = right.torque1;
-        data[1] = Exo_filter_data[0];
-        data[2] = LC_filter_data[0];
-        sendData();
-        /*SerialBT.print(right.torque1, 6);
-        SerialBT.print("\n");
-        SerialBT.print(Exo_filter_data[0],6);
-        SerialBT.print("\n");*/
-        data_send_loop = data_send_loop + 1;
-      }
+      previous_current_time_sending = 0;
     }
-    else
+
+    if ((current_time - previous_current_time_sending) >= 100)
     {
-      data_send_loop = 0;
+      previous_current_time_sending = current_time;
+      data[0] = right.torque1;
+      data[1] = Exo_filter_data[0];
+      data[2] = LC_filter_data[0];
+      sendData();
+      /*SerialBT.print(right.torque1, 6);
+      SerialBT.print("\n");
+      SerialBT.print(Exo_filter_data[0],6);
+      SerialBT.print("\n");*/
+      //data_send_loop = data_send_loop + 1;
       send_data = 'n';
     }
+    //}
+    //else
+    //{
+    //  data_send_loop = 0;
+    //  send_data = 'n';
+    //}
   }
 
   ////////////////////////////////////
@@ -708,13 +718,13 @@ void readExo(float *Exo_readings)
 {
   Exo_readings[0] = encoderMR.getCount();
   Exo_readings[0] = Exo_readings[0] * 360 / 2000;
-  Exo_readings[1] = analogRead(MR_vel) * m_velocity_in + c_velocity_in + 0.65; // velocity
+  Exo_readings[1] = analogRead(MR_vel) * m_velocity_in + c_velocity_in + 0.63; // velocity
   Exo_readings[1] = -1 * Exo_readings[1];
   Exo_readings[2] = analogRead(MR_curr) * m_current_in + c_current_in; // current
 
   Exo_readings[3] = encoderML.getCount() * (-1);
   Exo_readings[3] = Exo_readings[3] * 360 / 2000;
-  Exo_readings[4] = analogRead(ML_vel) * m_velocity_in + c_velocity_in + 0.65; // velocity
+  Exo_readings[4] = analogRead(ML_vel) * m_velocity_in + c_velocity_in + 0.63; // velocity
   Exo_readings[5] = analogRead(ML_curr) * m_current_in + c_current_in; // current
 
 }
@@ -1098,3 +1108,12 @@ void sendData()
 
   memset(buff, 0, sizeof(buff)); // Clear the buffer
 } 
+
+float kalmanFilterVelocity(float velocity,float angle){
+  float velAngle = (angle-filter_R.old_angle)/lp_vals.ts;
+  filter_R.old_angle = angle;
+  float kalmanGain = filter_R.uncertainty_vel/(filter_R.uncertainty_vel+sq(filter_R.uncertainty_velAngle));
+  velocity = velocity + kalmanGain*(velAngle-velocity);
+  filter_R.uncertainty_vel = (1-kalmanGain)*filter_R.uncertainty_vel;
+  return velocity;
+}

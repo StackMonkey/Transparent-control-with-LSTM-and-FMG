@@ -20,7 +20,7 @@ unsigned long previous_current_time_saving = 0;
 unsigned long previous_current_time_sending = 0;
 unsigned long previous_current_time_control = 0.f;
 float loop_time = 0;
-float control_loop_time = 2 * 1000;
+float control_loop_time = 80 * 1000;
 
 float exo_data_matrix[100] = {};//
 float exo_data[20] = {};
