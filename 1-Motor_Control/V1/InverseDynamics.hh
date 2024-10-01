@@ -13,7 +13,7 @@ class InverseDynamics{
   } 
     float lp = 0.3;
     float le = 0.17;
-    float Me = 0.1;
+    float Me = 0.2;
     float Je = 0.21;//0.2 + mass2*sq(lp)+Me*sq(le);
     float mass2 = 0;
     float g = 9.81;
