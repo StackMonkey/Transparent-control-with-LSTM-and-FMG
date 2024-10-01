@@ -187,7 +187,10 @@ void loop()
   Exo_filter_data[1] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[1] + lp_vals.old_vel_MR) / (1 + lp_vals.ts * lp_vals.wc);
   Exo_filter_data[1] = kalmanFilterVelocity(Exo_filter_data[1],Exo_filter_data[0]*3.142/180.0);
   if((oldAngles[0]+oldAngles[1]+oldAngles[2]+oldAngles[3])/4.0 == Exo_filter_data[0]){
-    Exo_filter_data[1] = 0.0;
+    Exo_filter_data[1] = Exo_filter_data[1]*0.9;
+    if(Exo_filter_data[1] < 0.00001){
+      Exo_filter_data[1] = 0.0;
+    }
   }
   right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
   //right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
@@ -269,8 +272,8 @@ void loop()
   }
   if (control_strategy == 'A')
   {
-    MR_AF_gains.inertia_val = 0.25 + right.mass2*sq(right.lp); // 0.038 //M
-    MR_AF_gains.damping_val = 0.1;     //D
+    MR_AF_gains.inertia_val = right.Je + right.mass2*sq(right.lp); // 0.038 //M
+    MR_AF_gains.damping_val = 0.5*right.Me*right.le*cos(Exo_filter_data[0]*3.142/180.0);     //D
     //ML_AF_gains.inertia_val = 0.14 + left.mass2*sq(left.lp); // 0.038 //M
     ML_AF_gains.damping_val = 0.0;     //D'
     if(payloadMass > 0.0){
