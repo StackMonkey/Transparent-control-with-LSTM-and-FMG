@@ -50,8 +50,8 @@ unsigned long encoder2lastToggled;
 bool encoder2Paused = false;
 
 HardwareSerial MySerial(1);
-InverseDynamics right;
-//InverseDynamics left;
+//InverseDynamics right;
+InverseDynamics left;
 //===================================================================================
 // TYPECASTS
 //===================================================================================
@@ -183,7 +183,7 @@ void loop()
   oldAngles[0] = oldAngles[1];
   oldAngles[1] = oldAngles[2];
   oldAngles[2] = oldAngles[3];
-  oldAngles[3] = Exo_filter_data[0];
+  oldAngles[3] = Exo_filter_data[3];
   Exo_filter_data[1] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[1] + lp_vals.old_vel_MR) / (1 + lp_vals.ts * lp_vals.wc);
   Exo_filter_data[1] = kalmanFilterVelocity(Exo_filter_data[1],Exo_filter_data[0]*3.142/180.0);
   if((oldAngles[0]+oldAngles[1]+oldAngles[2]+oldAngles[3])/4.0 == Exo_filter_data[0]){
@@ -192,19 +192,27 @@ void loop()
       Exo_filter_data[1] = 0.0;
     }
   }
-  right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
+  //right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
   //right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
   //right.acceleration = (lp_vals.ts * lp_vals.wc * right.acceleration + right.prevAcceleration) / (1 + lp_vals.ts * lp_vals.wc);
   lp_vals.old_vel_MR = Exo_filter_data[1];
-  right.prevAcceleration = right.acceleration;
+  //right.prevAcceleration = right.acceleration;
   Exo_filter_data[2] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[2] + lp_vals.old_cur_MR) / (1 + lp_vals.ts * lp_vals.wc);
   lp_vals.old_cur_MR = Exo_filter_data[2];
 
   Exo_filter_data[4] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[4] + lp_vals.old_vel_ML) / (1 + lp_vals.ts * lp_vals.wc);
+  Exo_filter_data[4] = kalmanFilterVelocity(Exo_filter_data[4],Exo_filter_data[3]*3.142/180.0);
+  if((oldAngles[0]+oldAngles[1]+oldAngles[2]+oldAngles[3])/4.0 == Exo_filter_data[3]){
+    Exo_filter_data[4] = Exo_filter_data[4]*0.9;
+    if(abs(Exo_filter_data[4]) < 0.00001){
+      Exo_filter_data[4] = 0.0;
+    }
+  }
+  left.acceleration = (Exo_filter_data[4]-lp_vals.old_vel_MR)/lp_vals.ts;
  // left.acceleration = (Exo_filter_data[4]-lp_vals.old_vel_ML)/lp_vals.ts;
   //left.acceleration = (lp_vals.ts * lp_vals.wc * left.acceleration + left.prevAcceleration) / (1 + lp_vals.ts * lp_vals.wc);
   lp_vals.old_vel_ML = Exo_filter_data[4];
-  //left.prevAcceleration = left.acceleration;
+  left.prevAcceleration = left.acceleration;
   Exo_filter_data[5] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[5] + lp_vals.old_cur_ML) / (1 + lp_vals.ts * lp_vals.wc);
   lp_vals.old_cur_ML = Exo_filter_data[5];
 
@@ -272,22 +280,21 @@ void loop()
   }
   if (control_strategy == 'A')
   {
-    MR_AF_gains.inertia_val = right.Je + right.mass2*sq(right.lp); // 0.038 //M
-    MR_AF_gains.damping_val = 0.1;     //D
-    //ML_AF_gains.inertia_val = 0.14 + left.mass2*sq(left.lp); // 0.038 //M
-    ML_AF_gains.damping_val = 0.0;     //D'
+    //MR_AF_gains.inertia_val = right.Je + right.mass2*sq(right.lp); // 0.038 //M
+    //MR_AF_gains.damping_val = 0.1;     //D
+    ML_AF_gains.inertia_val = left.Je + left.mass2*sq(left.lp); // 0.038 //M
+    ML_AF_gains.damping_val = 0.1;     //D'
     if(payloadMass > 0.0){
-      MR_AF_gains.inertia_val = 0.25 + right.mass2*sq(right.lp); // 0.038 //M
-      MR_AF_gains.damping_val = 3;     //D
-      //ML_AF_gains.inertia_val = 0.1 + left.mass2*sq(left.lp); // 0.038 //M
-      ML_AF_gains.damping_val = 0.0;     //D'
+      //MR_AF_gains.inertia_val = 0.25 + right.mass2*sq(right.lp); // 0.038 //M
+      //MR_AF_gains.damping_val = 3;     //D
+      ML_AF_gains.inertia_val = 0.25 + left.mass2*sq(left.lp); // 0.038 //M
+      ML_AF_gains.damping_val = 0.1;     //D'
     }
-    float rtorque = right.Torque(Exo_filter_data[0]*3.142/180.0,Exo_filter_data[1],payloadMass,0.002);
+    float rtorque = left.Torque(Exo_filter_data[3]*3.142/180.0,Exo_filter_data[4],payloadMass,0.002);
     dynamictorque = rtorque;
     torqueInfo = rightTorquePre;
-    desired_velocity_MR = admittance_filter_MR(rightTorquePre);
-    //desired_velocity_ML = admittance_filter_ML(invltorquePre);
-    desired_velocity_ML = 0;
+    //desired_velocity_MR = admittance_filter_MR(rightTorquePre);
+    desired_velocity_ML = admittance_filter_ML(rightTorquePre);
   }
 
   //if (SerialBT.available())
@@ -514,25 +521,11 @@ void loop()
             desired_velocity_MR = -1 * conditional_velocity_limit_rps;
           }
         }
-        desired_velocity_MR = safety_function(desired_velocity_MR, Exo_filter_data[1], Exo_filter_data[0]);
-        Serial.print(torqueInfo,6);
-        Serial.print(",");
-        Serial.print(dynamictorque);
-        Serial.print(",");
-        Serial.print(LC_filter_data[0]);
-        Serial.print(",");
-        Serial.print(Exo_filter_data[0]);
-        Serial.print(",");
-        Serial.print(Exo_filter_data[1],6);
-        Serial.print(",");
-        Serial.print(desired_velocity_MR);
-        Serial.print(",");
-        Serial.print(right.acceleration);
-        Serial.println();
-        PID_control((desired_velocity_MR - Exo_filter_data[1]), &MR_vel_gains);
+        //desired_velocity_MR = safety_function(desired_velocity_MR, Exo_filter_data[1], Exo_filter_data[0]);
+        //PID_control((desired_velocity_MR - Exo_filter_data[1]), &MR_vel_gains);
         /*Serial.print(MR_vel_gains.output);
           Serial.print(',');*/
-        current_control(MR_vel_gains.output, MR_dir, MR_pwm_channel);
+        //current_control(MR_vel_gains.output, MR_dir, MR_pwm_channel);
 
         if (desired_velocity_ML > 0)
         {
@@ -549,9 +542,23 @@ void loop()
           }
         }
         desired_velocity_ML = safety_function(desired_velocity_ML, Exo_filter_data[4], Exo_filter_data[3]);
+        Serial.print(torqueInfo,6);
+        Serial.print(",");
+        Serial.print(dynamictorque);
+        Serial.print(",");
+        Serial.print(LC_filter_data[0]);
+        Serial.print(",");
+        Serial.print(Exo_filter_data[3]);
+        Serial.print(",");
+        Serial.print(Exo_filter_data[4],6);
+        Serial.print(",");
+        Serial.print(desired_velocity_ML);
+        Serial.print(",");
+        Serial.print(left.acceleration);
+        Serial.println();
         PID_control((desired_velocity_ML - Exo_filter_data[4]), &ML_vel_gains);
 
-       // current_control(ML_vel_gains.output, ML_dir, ML_pwm_channel);
+        current_control(ML_vel_gains.output, ML_dir, ML_pwm_channel);
       }
       //motor_actuation_loop = 0;
     //}
@@ -583,13 +590,13 @@ void loop()
         Serial.print(",");
         Serial.print(LC_filter_data[0]);
         Serial.print(",");
-        Serial.print(Exo_filter_data[0]);
+        Serial.print(Exo_filter_data[3]);
         Serial.print(",");
-        Serial.print(Exo_filter_data[1],6);
+        Serial.print(Exo_filter_data[4],6);
         Serial.print(",");
-        Serial.print(desired_velocity_MR);
+        Serial.print(desired_velocity_ML);
         Serial.print(",");
-        Serial.print(right.acceleration);
+        Serial.print(left.acceleration);
         Serial.println();
       //motor_actuation_loop = 0;
     //}
@@ -634,7 +641,7 @@ void loop()
     if ((current_time - previous_current_time_sending) >= 100)
     {
       previous_current_time_sending = current_time;
-      data[0] = right.torque1;
+      data[0] = left.torque1;
       data[1] = Exo_filter_data[0];
       data[2] = LC_filter_data[0];
       sendData();
