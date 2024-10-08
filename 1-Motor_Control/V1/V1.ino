@@ -546,7 +546,7 @@ void loop()
         Serial.print(",");
         Serial.print(dynamictorque);
         Serial.print(",");
-        Serial.print(LC_filter_data[0]);
+        Serial.print(LC_filter_data[3]);
         Serial.print(",");
         Serial.print(Exo_filter_data[3]);
         Serial.print(",");
@@ -588,7 +588,7 @@ void loop()
         Serial.print(",");
         Serial.print(dynamictorque);
         Serial.print(",");
-        Serial.print(LC_filter_data[0]);
+        Serial.print(LC_filter_data[3]);
         Serial.print(",");
         Serial.print(Exo_filter_data[3]);
         Serial.print(",");
@@ -597,6 +597,8 @@ void loop()
         Serial.print(desired_velocity_ML);
         Serial.print(",");
         Serial.print(left.acceleration);
+        Serial.print(",");
+        Serial.print(payloadMass);
         Serial.println();
       //motor_actuation_loop = 0;
     //}
@@ -642,7 +644,7 @@ void loop()
     {
       previous_current_time_sending = current_time;
       data[0] = left.torque1;
-      data[1] = Exo_filter_data[0];
+      data[1] = Exo_filter_data[3];
       data[2] = LC_filter_data[0];
       sendData();
       /*SerialBT.print(right.torque1, 6);
@@ -1053,7 +1055,7 @@ void read_string() {
 					gains_sel = gains_sel.substring(comma_index + 1);
 					comma_index = gains_sel.indexOf(',', 0);
 					gains_val = gains_sel.substring(0, comma_index);
-					leftTorquePre = gains_val.toFloat();
+					payloadMass = gains_val.toFloat();
 				}
 			}
 		}
