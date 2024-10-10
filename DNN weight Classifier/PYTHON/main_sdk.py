@@ -313,7 +313,7 @@ class Armband:
                             axs_plot[i, j].set_title('Gesture to hold')
                         
                         axs_plot[i, j].axis('off') 
-                        y = '.jpg'
+                        y = '.JPG'
                         image_name =  x + y
                         cv2_img = cv2.imread(os.path.join('images', image_name))
                         mod_cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
