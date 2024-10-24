@@ -13,7 +13,7 @@ gesture_names = {'open'};
 
 %% pre-allocation of memory space otherwise data recording will slow down with time
 recording_frequency = 950; %% Hz approx.
-time_to_record = 200; %%seconds -- This can be changedb
+time_to_record = 30; %%seconds -- This can be changedb
 time_each_loop = 20; %%msec
 pre_allocated_space = floor(time_to_record*recording_frequency/time_each_loop); %% 1 loop collects the data for 20 msec
 

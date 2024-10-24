@@ -30,29 +30,11 @@ cutNewMaltheLoadfsr = extract_and_plot_intervals(newMaltheLoadfsr,newIntervalsLo
 filename = sprintf('dataNewMaltheLoadfsrFlexed.xls');
 xlswrite(filename, cutNewMaltheLoadfsr(:,:,1))
 %% Malthe new data load 1 rest
-newIntervalsLoadRest = {[7001,12000]}
-cutNewMaltheLoadfsrRest = extract_and_plot_intervals(newMaltheLoadfsr,newIntervalsLoadRest);
+newIntervalsNoLoadRest = {[7001,12000]}
+cutNewMaltheNoLoadfsrRest = extract_and_plot_intervals(newMaltheNoLoadfsr,newIntervalsNoLoadRest);
 
-filename = sprintf('dataNewMaltheLoadfsrRest.xls');
-xlswrite(filename, cutNewMaltheLoadfsrRest(:,:,1))
-%% Malthe new data load 2
-newMaltheLoad2 = load('MaltheLoad2New.mat')
-newMaltheLoad2fsr = newMaltheLoad2.raw_data.open;
-newMaltheLoad2fsr = newMaltheLoad2fsr.fsr_data;
-
-plot(newMaltheLoad2fsr)
-%% Malthe new data load 2 flexed
-newIntervalsLoad2 = {[1,5000]}
-cutNewMaltheLoad2fsr = extract_and_plot_intervals(newMaltheLoad2fsr,newIntervalsLoad2);
-
-filename = sprintf('dataNewMaltheLoad2fsrFlexed.xls');
-xlswrite(filename, cutNewMaltheLoad2fsr(:,:,1))
-%% Malthe new data load 2 rest
-newIntervalsLoad2Rest = {[9000,13000]}
-cutNewMaltheLoad2fsrRest = extract_and_plot_intervals(newMaltheLoad2fsr,newIntervalsLoad2Rest);
-
-filename = sprintf('dataNewMaltheLoad2fsrRest.xls');
-xlswrite(filename, cutNewMaltheLoad2fsrRest(:,:,1))
+filename = sprintf('dataNewMaltheNoLoadfsrRest.xls');
+xlswrite(filename, cutNewMaltheNoLoadfsrRest(:,:,1))
 %%
 % Malthe Large Load
 MaltheLargeLoad = load('MaltheLargePayload.mat');
