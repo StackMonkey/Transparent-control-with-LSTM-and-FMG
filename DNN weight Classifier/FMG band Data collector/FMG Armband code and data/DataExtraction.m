@@ -1,13 +1,13 @@
 % Malthe extra data
-extraData = load('MaltheNewData3.mat')
+extraData = load('MaltheNewDataOutward3.mat')
 extraDatafsr = extraData.raw_data.open;
 extraDatafsr = extraDatafsr.fsr_data;
 plot(extraDatafsr)
 %%
-extraInterval = {[3200,4200],[4201,5201],[9800,10800],[10801,11801],[15300,16300],[16301,17301],[23000,24000],[24001,25001]}
+extraInterval = {[1,1001],[1001,2001],[8000,9000],[9001,10001],[13000,14000],[14001,15001],[21000,22000],[24001,25001]}
 cutExtraData = extract_and_plot_intervals(extraDatafsr,extraInterval);
 for i = 1:8
-    filename = sprintf('dataMaltheExtraDataClassNew2%01d.xls',i);
+    filename = sprintf('dataMaltheExtraDataOutward3%01d.xls',i);
     xlswrite(filename, cutExtraData(:,:,i))
 end
 %% Malthe new data no load
