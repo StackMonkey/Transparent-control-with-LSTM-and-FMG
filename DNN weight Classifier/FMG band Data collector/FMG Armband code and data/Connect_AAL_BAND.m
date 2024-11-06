@@ -7,7 +7,7 @@ com_port_open_error = 0;
 %% With Serial Port
 
 %COM_Port = getAvailableComPort(); % Looking for available COM ports
-COM_Port = {"COM22","COM129"}; % Looking for available COM ports  26E6
+COM_Port = {"COM25","COM129"}; % Looking for available COM ports  26E6
 [~,~]=size(COM_Port);
 % [m,~] = size(COM_Port);%%将串�?�的行数返给m，如�?边~是第二个�?��?则将列返给其
 com_stab = 0;
