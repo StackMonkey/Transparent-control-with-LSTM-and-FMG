@@ -1,13 +1,13 @@
 % Malthe extra data
-extraData = load('MaltheNewDataInward7.mat')
+extraData = load('MaltheNewDataInward11.mat')
 extraDatafsr = extraData.raw_data.open;
 extraDatafsr = extraDatafsr.fsr_data;
 plot(extraDatafsr)
 %%
-extraInterval = {[1,1001],[1001,2001],[8000,9000],[9001,10001],[14000,15000],[15001,16001],[22000,23000],[25001,26001]}
+extraInterval = {[1,2000],[2001,4001],[7500,9500],[9501,11500],[13500,15500],[15501,17500],[22000,24000],[24001,26001]}
 cutExtraData = extract_and_plot_intervals(extraDatafsr,extraInterval);
 for i = 1:8
-    filename = sprintf('dataMaltheExtraDataInward7%01d.xls',i);
+    filename = sprintf('dataMaltheExtraDataInward11%01d.xls',i);
     xlswrite(filename, cutExtraData(:,:,i))
 end
 %% Malthe new data no load
@@ -234,7 +234,7 @@ end
 %% Extraction Function
 function [extracted_intervals_array] = extract_and_plot_intervals(signals_array, intervals)
     % Define the desired sample size for each interval
-    sample_size = 500;
+    sample_size = 1000;
 
     % Initialize a cell array to store the extracted intervals
     extracted_intervals = cell(length(intervals), 1);
