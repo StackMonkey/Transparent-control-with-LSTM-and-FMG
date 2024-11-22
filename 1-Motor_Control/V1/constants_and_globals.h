@@ -28,7 +28,7 @@ float exo_data[20] = {};
 ///// Motor control and feedback /////
 //////////////////////////////////////
 //const int control_status_ledPin =  13;
-char control_status = 'D';//
+char control_status = 'C';//
 long loop_count = 1;
 
 // position encoder

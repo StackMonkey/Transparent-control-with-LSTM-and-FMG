@@ -290,7 +290,7 @@ void loop()
       ML_AF_gains.inertia_val = 0.25 + left.mass2*sq(left.lp); // 0.038 //M
       ML_AF_gains.damping_val = 0.1;     //D'
     }
-    float rtorque = left.Torque(Exo_filter_data[3]*3.142/180.0,Exo_filter_data[4],payloadMass,0.002);
+    float rtorque = left.Torque(Exo_filter_data[3]*3.142/180.0,Exo_filter_data[4],payloadMass,0.08);
     dynamictorque = rtorque;
     torqueInfo = rightTorquePre;
     //desired_velocity_MR = admittance_filter_MR(rightTorquePre);
