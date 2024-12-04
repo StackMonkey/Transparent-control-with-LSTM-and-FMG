@@ -57,7 +57,7 @@ float out_oldold_ML = 0.0;
 float torque_constant  = 0.111;
 float gear_ratio       = 100;
 float radps_2_rpm        = 9.5493;    
-int   motors_enable_flag = 0; 
+int motors_enable_flag = 0; 
 float motor_actuation_loop = 0;
 float motor_actuation_time = 50*1000; // 50 msec
 

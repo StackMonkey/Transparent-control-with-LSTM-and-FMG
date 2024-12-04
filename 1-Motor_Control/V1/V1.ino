@@ -115,7 +115,7 @@ void setup() {
   pinmode_slection();
 
   ///////
-  char c = 'b';
+  char c = 'k';
   char C = 'b';
   while (c != 'k')
   {
@@ -185,32 +185,24 @@ void loop()
   oldAngles[2] = oldAngles[3];
   oldAngles[3] = Exo_filter_data[3];
   Exo_filter_data[1] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[1] + lp_vals.old_vel_MR) / (1 + lp_vals.ts * lp_vals.wc);
-  Exo_filter_data[1] = kalmanFilterVelocity(Exo_filter_data[1],Exo_filter_data[0]*3.142/180.0);
   if((oldAngles[0]+oldAngles[1]+oldAngles[2]+oldAngles[3])/4.0 == Exo_filter_data[0]){
     Exo_filter_data[1] = Exo_filter_data[1]*0.9;
     if(abs(Exo_filter_data[1]) < 0.00001){
       Exo_filter_data[1] = 0.0;
     }
   }
-  //right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
-  //right.acceleration = (Exo_filter_data[1]-lp_vals.old_vel_MR)/lp_vals.ts;
-  //right.acceleration = (lp_vals.ts * lp_vals.wc * right.acceleration + right.prevAcceleration) / (1 + lp_vals.ts * lp_vals.wc);
   lp_vals.old_vel_MR = Exo_filter_data[1];
-  //right.prevAcceleration = right.acceleration;
   Exo_filter_data[2] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[2] + lp_vals.old_cur_MR) / (1 + lp_vals.ts * lp_vals.wc);
   lp_vals.old_cur_MR = Exo_filter_data[2];
 
   Exo_filter_data[4] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[4] + lp_vals.old_vel_ML) / (1 + lp_vals.ts * lp_vals.wc);
-  Exo_filter_data[4] = kalmanFilterVelocity(Exo_filter_data[4],Exo_filter_data[3]*3.142/180.0);
   if((oldAngles[0]+oldAngles[1]+oldAngles[2]+oldAngles[3])/4.0 == Exo_filter_data[3]){
     Exo_filter_data[4] = Exo_filter_data[4]*0.9;
     if(abs(Exo_filter_data[4]) < 0.00001){
       Exo_filter_data[4] = 0.0;
     }
   }
-  left.acceleration = (Exo_filter_data[4]-lp_vals.old_vel_MR)/lp_vals.ts;
- // left.acceleration = (Exo_filter_data[4]-lp_vals.old_vel_ML)/lp_vals.ts;
-  //left.acceleration = (lp_vals.ts * lp_vals.wc * left.acceleration + left.prevAcceleration) / (1 + lp_vals.ts * lp_vals.wc);
+  left.acceleration = (Exo_filter_data[4]-lp_vals.old_vel_ML)/lp_vals.ts;
   lp_vals.old_vel_ML = Exo_filter_data[4];
   left.prevAcceleration = left.acceleration;
   Exo_filter_data[5] = (lp_vals.ts * lp_vals.wc * Exo_filter_data[5] + lp_vals.old_cur_ML) / (1 + lp_vals.ts * lp_vals.wc);
@@ -280,16 +272,10 @@ void loop()
   }
   if (control_strategy == 'A')
   {
-    //MR_AF_gains.inertia_val = right.Je + right.mass2*sq(right.lp); // 0.038 //M
-    //MR_AF_gains.damping_val = 0.1;     //D
+    //MR_AF_gains.inertia_val = left.Je + left.mass2*sq(left.lp); // 0.038 //M
+    //MR_AF_gains.damping_val = 0.05;     //D
     ML_AF_gains.inertia_val = left.Je + left.mass2*sq(left.lp); // 0.038 //M
-    ML_AF_gains.damping_val = 0.1;     //D'
-    if(payloadMass > 0.0){
-      //MR_AF_gains.inertia_val = 0.25 + right.mass2*sq(right.lp); // 0.038 //M
-      //MR_AF_gains.damping_val = 3;     //D
-      ML_AF_gains.inertia_val = 0.25 + left.mass2*sq(left.lp); // 0.038 //M
-      ML_AF_gains.damping_val = 0.1;     //D'
-    }
+    ML_AF_gains.damping_val = 0.05;     //D'
     float rtorque = left.Torque(Exo_filter_data[3]*3.142/180.0,Exo_filter_data[4],payloadMass,0.08);
     dynamictorque = rtorque;
     torqueInfo = rightTorquePre;
@@ -541,7 +527,8 @@ void loop()
             desired_velocity_ML = -1 * conditional_velocity_limit_rps;
           }
         }
-        desired_velocity_ML = safety_function(desired_velocity_ML, Exo_filter_data[4], Exo_filter_data[3]);
+        desired_velocity_ML = 4.0;
+        //desired_velocity_ML = safety_function(desired_velocity_ML, Exo_filter_data[4], Exo_filter_data[3]);
         Serial.print(torqueInfo,6);
         Serial.print(",");
         Serial.print(dynamictorque);
@@ -555,9 +542,10 @@ void loop()
         Serial.print(desired_velocity_ML);
         Serial.print(",");
         Serial.print(left.acceleration);
-        Serial.println();
+        Serial.print(",");
         PID_control((desired_velocity_ML - Exo_filter_data[4]), &ML_vel_gains);
-
+        Serial.print(ML_vel_gains.output);
+        Serial.println();
         current_control(ML_vel_gains.output, ML_dir, ML_pwm_channel);
       }
       //motor_actuation_loop = 0;
@@ -578,11 +566,11 @@ void loop()
   if (control_status == 'D')
   {
     digitalWrite(MR_en, LOW);
-    digitalWrite(ML_en, LOW);
-    motors_enable_flag = 0;
+    digitalWrite(ML_en, HIGH);
+    motors_enable_flag = 1;
     //motor_actuation_loop = 0;
     velocity_control(0, MR_dir, MR_pwm_channel);
-    velocity_control(0, ML_dir, ML_pwm_channel);
+    velocity_control(4.0, ML_dir, ML_pwm_channel);
     //if (motor_actuation_loop >= (motor_actuation_time / control_loop_time)){
         Serial.print(torqueInfo,6);
         Serial.print(",");
@@ -640,7 +628,7 @@ void loop()
       previous_current_time_sending = 0;
     }
 
-    if ((current_time - previous_current_time_sending) >= 100)
+    if ((current_time - previous_current_time_sending) >= 80)
     {
       previous_current_time_sending = current_time;
       data[0] = left.torque1;
